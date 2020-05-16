@@ -96,7 +96,7 @@ class discord
         $separator = "";
         $no_valid_scope = true;
         $scopelist = $this->scope_handler($scopes);
-        if(!$scopelist)
+        if (!$scopelist)
         {
             return "No valid scopes were defined.";
         }
@@ -139,9 +139,9 @@ class discord
      * @param string $redirect_uri The url to redirect to.
      * @return mixed On success: an access token object, On Failure: an object with error information.
      */
-    public function login_request(string $code, string $redirect_uri="")
+    public function login_request(string $code, string $redirect_uri = "")
     {
-        if(!$redirect_uri)
+        if (!$redirect_uri)
         {
             $redirect_uri = $this->redirect_uri;
         }
@@ -218,11 +218,11 @@ class discord
      * @param string $state Optional. Used to prevent CSRF when provided.
      * @return string The url for the implicit grant.
      */
-    public function implicit_grant($scopes, string $state="")
+    public function implicit_grant($scopes, string $state = "")
     {
         $scopelist = $this->scope_handler($scopes);
         $implicit_uri = $this->implicit_grant_uri . "&client_id=" . $this->client_id;
-        if($state)
+        if ($state)
         {
             $implicit_uri .= "&state=" . urlencode($state);
         }
@@ -262,25 +262,25 @@ class discord
      * @param bool $disable_guild_select When set to true, denies the option to send the bot to a different guild. Generally used with guild id set.
      * @return string Either the url on success or an error message on failure.
      */
-    public function generate_bot_authorize_url($scopes, int $permissions=0, int $guild_id=0, bool $disable_guild_select=false)
+    public function generate_bot_authorize_url($scopes, int $permissions = 0, int $guild_id = 0, bool $disable_guild_select = false)
     {
         $scopelist = $this->scope_handler($scopes);
         $bot_uri = $this->bot_uri . "?client_id=" . $this->client_id;
-        if(!$scopelist)
+        if (!$scopelist)
         {
             return "No valid scopes defined.";
         }
         $bot_uri .= "&scope=" . $scopelist;
-        if(!$permissions)
+        if (!$permissions)
         {
             return "Permissions must be greater than 0.";
         }
         $bot_uri .= "&permissions=" . $permissions;
-        if($guild_id)
+        if ($guild_id)
         {
             $bot_uri .= "&guild_id=" . $guild_id;
         }
-        if($disable_guild_select)
+        if ($disable_guild_select)
         {
             $bot_uri .= "&disable_guild_select=" . $disable_guild_select;
         }
@@ -294,14 +294,14 @@ class discord
      * @param string $redirect_url If specified, the url to redirect to.  Default is the main redirect url.
      * @return string The url to navigate to.
      */
-    public function generate_webhook_url(string $state="", string $redirect_url="")
+    public function generate_webhook_url(string $state = "", string $redirect_url = "")
     {
         $webhook_uri = $this->bot_uri . "?response_type=code&client_id=" . $this->client_id . "&scope=webhook.incoming";
-        if($state)
+        if ($state)
         {
             $webhook_uri .= "&state=" . $state;
         }
-        if(!$redirect_url)
+        if (!$redirect_url)
         {
             $redirect_url = $this->redirect_uri;
         }
@@ -316,7 +316,7 @@ class discord
      */
     public function get_user_data(string $access_token)
     {
-        if($access_token)
+        if ($access_token)
         {
             $info_request = "https://discordapp.com/api/users/@me";
             $info = curl_init();
@@ -365,44 +365,10 @@ class discord
     }
 
     /**
-     * This function takes $scopes as either an array or comma separated values list and verifies what scopes are valid and formats them.
-     * @param mixed $scopes Array or CSV of scopes.
-     * @return string The string to use for a request.
-     */
-    private function scope_handler($scopes)
-    {
-        $scopelist = $separator = "";
-        if(is_array($scopes))
-        {
-            foreach ($scopes as $scope)
-            {
-                if($this->is_valid_scope($scope))
-                {
-                    $scopelist .= $separator . $scope;
-                    $separator = "%20";
-                }
-            }
-        }
-        else
-        {
-            $scopes = explode(",", $scopes);
-            foreach($scopes as $scope)
-            {
-                if($this->is_valid_scope($scope))
-                {
-                    $scopelist .= $separator . $scope;
-                    $separator = "%20";
-                }
-            }
-        }
-        return $scopelist;
-    }
-
-    /**
      * @param int $discordid The discord id of the user.
      * @return mixed An object of user info.
      */
-    public function get_user(int $discordid=0)
+    public function get_user(int $discordid = 0)
     {
         return $this->get_request("users", $discordid);
     }
@@ -422,7 +388,7 @@ class discord
      * @param bool $with_count Whether to get an estimate of guild members.
      * @return mixed A guild object.
      */
-    public function get_guild(int $guild_id=0, bool $with_count=false)
+    public function get_guild(int $guild_id = 0, bool $with_count = false)
     {
         return $this->get_request("guilds", $guild_id . "?with_counts=" . $with_count);
     }
@@ -432,9 +398,9 @@ class discord
      * @param array $data An array in $key => $value pairs.  The key name is required, anything else is optional.
      * @return mixed|string A guild object on success.  An error object on failure.
      */
-    public function create_guild($data=array())
+    public function create_guild($data = array())
     {
-        if(!array_key_exists("name", $data))
+        if (!array_key_exists("name", $data))
         {
             return "The key name is required for creating a guild.";
         }
@@ -446,7 +412,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A guild preview object.
      */
-    public function get_guild_preview(int $guild_id=0)
+    public function get_guild_preview(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/preview");
     }
@@ -456,7 +422,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A guild channel object.
      */
-    public function get_guild_channels(int $guild_id=0)
+    public function get_guild_channels(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/channels");
     }
@@ -467,9 +433,9 @@ class discord
      * @param array $data An array of $key => $value pairs.  Name is the only required field.
      * @return mixed|string An object containing the data of the created channel on success. Error object on failure.
      */
-    public function create_guild_channel(int $guild_id=0, $data=array())
+    public function create_guild_channel(int $guild_id = 0, $data = array())
     {
-        if(!array_key_exists("name", $data))
+        if (!array_key_exists("name", $data))
         {
             return "The key name is required to be present for creating a guild channel.";
         }
@@ -482,7 +448,7 @@ class discord
      * @param int $discordid The discord id of the user.
      * @return mixed A guild member object on success.  An error object on failure.
      */
-    public function get_guild_member(int $guild_id=0, int $discordid=0)
+    public function get_guild_member(int $guild_id = 0, int $discordid = 0)
     {
         return $this->get_request("guilds/" . $guild_id . "/members", $discordid);
     }
@@ -493,7 +459,7 @@ class discord
      * @param int $after The highest id of the last guild member returned.
      * @return mixed Guild member object on success.  An error object on failure.
      */
-    public function list_guild_members(int $guild_id=0, int $after=0)
+    public function list_guild_members(int $guild_id = 0, int $after = 0)
     {
         return $this->get_request("guilds", $guild_id . "/members?after=" . $after);
     }
@@ -503,7 +469,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A list of guild ban objects on success.  An error object on failure.
      */
-    public function get_guild_bans(int $guild_id=0)
+    public function get_guild_bans(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/bans", true);
     }
@@ -514,7 +480,7 @@ class discord
      * @param int $discordid The id of the user.
      * @return mixed A ban object on success.  An error object on failure.
      */
-    public function get_guild_ban(int $guild_id=0, int $discordid=0)
+    public function get_guild_ban(int $guild_id = 0, int $discordid = 0)
     {
         return $this->get_request("guilds/" . $guild_id . "/bans", $discordid, true);
     }
@@ -524,7 +490,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A llist of guild role objects on success.  An error object on failure.
      */
-    public function get_guild_roles(int $guild_id=0)
+    public function get_guild_roles(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/roles");
     }
@@ -535,9 +501,9 @@ class discord
      * @param array $data An array of $key => $value pairs.  The key name is required.
      * @return mixed|string A role object on success.  An error object on failure.
      */
-    public function create_guild_role(int $guild_id=0, $data=array())
+    public function create_guild_role(int $guild_id = 0, $data = array())
     {
-        if(!array_key_exists("name", $data))
+        if (!array_key_exists("name", $data))
         {
             return "The key name is required for creating a guild role.";
         }
@@ -549,7 +515,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A list of invite objects on success.  An error object on failure.
      */
-    public function get_guild_invites(int $guild_id=0)
+    public function get_guild_invites(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/invites", true);
     }
@@ -559,7 +525,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A list of integration objects on success.  An error object on failure.
      */
-    public function get_guild_integrations(int $guild_id=0)
+    public function get_guild_integrations(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/integrations", true);
     }
@@ -570,9 +536,9 @@ class discord
      * @param array $data An array of $key => $value pairs.
      * @return mixed|string An integration object on success.  An error object on failure.
      */
-    public function create_guild_integration(int $guild_id=0, $data=array())
+    public function create_guild_integration(int $guild_id = 0, $data = array())
     {
-        if(!array_key_exists("type", $data) || !array_key_exists("id", $data))
+        if (!array_key_exists("type", $data) || !array_key_exists("id", $data))
         {
             return "Create a guild integration requires the keys type and id.";
         }
@@ -584,7 +550,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A widget object on success.  An error object on failure.
      */
-    public function get_guild_widget(int $guild_id=0)
+    public function get_guild_widget(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/widget", true);
     }
@@ -595,7 +561,7 @@ class discord
      * @param string $style The style of image.  Valid values are shield, banner1, banner2, banner3, and banner4.
      * @return mixed
      */
-    public function get_guild_widget_image(int $guild_id=0, string $style="shield")
+    public function get_guild_widget_image(int $guild_id = 0, string $style = "shield")
     {
         return $this->get_request("guilds", $guild_id . "/widget.png");
     }
@@ -605,7 +571,7 @@ class discord
      * @param int $guild_id The id of the guild.
      * @return mixed A partial invite object on success.  An error object on failure.
      */
-    public function get_guild_vanity_url(int $guild_id=0)
+    public function get_guild_vanity_url(int $guild_id = 0)
     {
         return $this->get_request("guilds", $guild_id . "/vanity-url", true);
     }
@@ -617,7 +583,7 @@ class discord
      * @param int $channel_id The id of the channel.
      * @return mixed A channel object on success.  An error object on failure.
      */
-    public function get_channel(int $channel_id=0)
+    public function get_channel(int $channel_id = 0)
     {
         return $this->get_request("channels", $channel_id);
     }
@@ -631,15 +597,15 @@ class discord
      * @param int $limit The number of messages to return.
      * @return mixed|string A list of message objects on success.  An error object on failure.
      */
-    public function get_channel_messages(int $channel_id=0, string $parameter_name="around", int $parameter_value=0, int $limit=50)
+    public function get_channel_messages(int $channel_id = 0, string $parameter_name = "around", int $parameter_value = 0, int $limit = 50)
     {
         $valid_parameters = array("after", "before", "around");
-        if(!in_array($parameter_name, $valid_parameters) && $parameter_name != "")
+        if (!in_array($parameter_name, $valid_parameters) && $parameter_name != "")
         {
             return "Argument 2 must be one of after, before, or around.";
         }
         $parameter_part = "";
-        if($parameter_name)
+        if ($parameter_name)
         {
             $parameter_part = "&" . $parameter_name . "=" . $parameter_value;
         }
@@ -651,7 +617,7 @@ class discord
      * @param int $channel_id The id of the channel.
      * @return mixed A list of invite objects on success.  An error object on failure.
      */
-    public function get_channel_invites(int $channel_id=0)
+    public function get_channel_invites(int $channel_id = 0)
     {
         return $this->get_request("channels", $channel_id . "/invites", true);
     }
@@ -662,7 +628,7 @@ class discord
      * @param array $data An array of $key => $value pairs.
      * @return mixed An invite object on success.  An error object onn failure.
      */
-    public function create_channel_invite(int $channel_id, $data=array())
+    public function create_channel_invite(int $channel_id, $data = array())
     {
         return $this->post_request("channels", $channel_id, "invites", $data);
     }
@@ -672,7 +638,7 @@ class discord
      * @param int $channel_id The id of the channel.
      * @return mixed A list of message objects on success.  An error object on failure.
      */
-    public function get_channel_pins(int $channel_id=0)
+    public function get_channel_pins(int $channel_id = 0)
     {
         return $this->get_request("channels", $channel_id . "/pins");
     }
@@ -684,13 +650,13 @@ class discord
      * @param bool $requires_auth Whether authorization is required for the request.
      * @return mixed An object of the data.
      */
-    public function get_request(string $endpoint, $id=0, bool $requires_auth = false)
+    public function get_request(string $endpoint, $id = 0, bool $requires_auth = false)
     {
         $ch = curl_init($this->discord_api . "/" . $endpoint . "/" . $id);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        if($requires_auth)
+        if ($requires_auth)
         {
-            curl_setopt($ch, CURLOPT_HTTPHEADER,"Authorization: Bearer " . $this->access_token);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, "Authorization: Bearer " . $this->access_token);
         }
         $resp = json_decode(curl_exec($ch));
         curl_close($ch);
@@ -705,14 +671,14 @@ class discord
      * @param array $data An array of data containing key => value pairs.
      * @return mixed An object of the requested type.
      */
-    public function post_request(string $endpoint, int $id=0, string $point2="", $data=array())
+    public function post_request(string $endpoint, int $id = 0, string $point2 = "", $data = array())
     {
         $url = $this->discord_api . "/" . $endpoint;
-        if($id)
+        if ($id)
         {
             $url .= "/" . $id;
         }
-        if($point2)
+        if ($point2)
         {
             $url .= "/" . $point2;
         }
@@ -727,5 +693,39 @@ class discord
         $resp = json_decode(curl_exec($ch));
         curl_close($ch);
         return $resp;
+    }
+
+    /**
+     * This function takes $scopes as either an array or comma separated values list and verifies what scopes are valid and formats them.
+     * @param mixed $scopes Array or CSV of scopes.
+     * @return string The string to use for a request.
+     */
+    private function scope_handler($scopes)
+    {
+        $scopelist = $separator = "";
+        if (is_array($scopes))
+        {
+            foreach ($scopes as $scope)
+            {
+                if ($this->is_valid_scope($scope))
+                {
+                    $scopelist .= $separator . $scope;
+                    $separator = "%20";
+                }
+            }
+        }
+        else
+        {
+            $scopes = explode(",", $scopes);
+            foreach ($scopes as $scope)
+            {
+                if ($this->is_valid_scope($scope))
+                {
+                    $scopelist .= $separator . $scope;
+                    $separator = "%20";
+                }
+            }
+        }
+        return $scopelist;
     }
 }
