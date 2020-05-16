@@ -32,6 +32,11 @@ class discord
     private $access_token;
 
     /**
+     * @var string The token for a bot.
+     */
+    private $bot_token;
+
+    /**
      * @var string THe url to discord api.
      */
     public $discord_api = "https://discordapp.com/api";
@@ -66,11 +71,12 @@ class discord
      * @param string $client_secret The client secret of the application.
      * @param string $redirect_uri The default redirection url for logins.
      */
-    public function __construct(int $client_id, string $client_secret, string $redirect_uri)
+    public function __construct(int $client_id, string $client_secret, string $redirect_uri, string $bot_token)
     {
         $this->client_id = $client_id;
         $this->client_secret = $client_secret;
         $this->redirect_uri = $redirect_uri;
+        $this->bot_token = $bot_token;
     }
 
     /**
@@ -209,6 +215,26 @@ class discord
         ));
         curl_setopt($token, CURLOPT_RETURNTRANSFER, true);
         curl_exec($token);
+    }
+
+    /**
+     * @return mixed Information about the access token.
+     */
+    public function check_access_token()
+    {
+        $info_request = "https://discordapp.com/api/oauth2/@me";
+        $info = curl_init();
+        curl_setopt_array($info, array(
+            CURLOPT_URL => $info_request,
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer {$this->access_token}"
+            ),
+            CURLOPT_RETURNTRANSFER => true
+        ));
+
+        $user = json_decode(curl_exec($info));
+        curl_close($info);
+        return $user;
     }
 
     /**
@@ -390,7 +416,7 @@ class discord
      */
     public function get_guild(int $guild_id = 0, bool $with_count = false)
     {
-        return $this->get_request("guilds", $guild_id . "?with_counts=" . $with_count);
+        return $this->get_request("guilds", $guild_id . "?with_counts=" . $with_count, true, true);
     }
 
     /**
@@ -414,7 +440,7 @@ class discord
      */
     public function get_guild_preview(int $guild_id = 0)
     {
-        return $this->get_request("guilds", $guild_id . "/preview");
+        return $this->get_request("guilds", $guild_id . "/preview", true, true);
     }
 
     /**
@@ -492,7 +518,7 @@ class discord
      */
     public function get_guild_roles(int $guild_id = 0)
     {
-        return $this->get_request("guilds", $guild_id . "/roles");
+        return $this->get_request("guilds", $guild_id . "/roles", true, true);
     }
 
     /**
@@ -563,7 +589,7 @@ class discord
      */
     public function get_guild_widget_image(int $guild_id = 0, string $style = "shield")
     {
-        return $this->get_request("guilds", $guild_id . "/widget.png");
+        return $this->get_request("guilds", $guild_id . "/widget.png", true,true);
     }
 
     /**
@@ -648,16 +674,46 @@ class discord
      * @param string $endpoint A discord endpoint
      * @param mixed $id The id of the resource.
      * @param bool $requires_auth Whether authorization is required for the request.
+     * @param bool $bot_token Whether a bot token is used.
      * @return mixed An object of the data.
      */
-    public function get_request(string $endpoint, $id = 0, bool $requires_auth = false)
+    public function get_request(string $endpoint, $id = 0, bool $requires_auth = false, bool $bot_token = false)
     {
-        $ch = curl_init($this->discord_api . "/" . $endpoint . "/" . $id);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        if ($requires_auth)
+        $url = $this->discord_api . "/" . $endpoint . "/" . $id;
+        $ch = curl_init();
+        if($requires_auth)
         {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, "Authorization: Bearer " . $this->access_token);
+            if(!$bot_token)
+            {
+                curl_setopt_array($ch, array(
+                    CURLOPT_URL => $url,
+                    CURLOPT_HTTPHEADER => array(
+                        "Authorization: Bearer {$this->access_token}"
+                    ),
+                    CURLOPT_RETURNTRANSFER => true));
+            }
+            else
+            {
+                curl_setopt_array($ch, array(
+                    CURLOPT_URL => $url,
+                    CURLOPT_HTTPHEADER => array(
+                        "Authorization: Bot {$this->bot_token}"
+                    ),
+                    CURLOPT_RETURNTRANSFER => true));
+            }
         }
+
+      /*  if ($requires_auth)
+        {
+            if(!$bot_token)
+            {
+                curl_setopt($ch, CURLOPT_HTTPHEADER, "Authorization: Bearer " . $this->access_token);
+            }
+            else
+            {
+                curl_setopt($ch, CURLOPT_HTTPHEADER, "Authorization: Bot " . $this->bot_token);
+            }
+        } */
         $resp = json_decode(curl_exec($ch));
         curl_close($ch);
         return $resp;
@@ -666,12 +722,12 @@ class discord
     /**
      * This function executes a post request.
      * @param string $endpoint The API endpoint to hit.
-     * @param int $id When not 0, the id required.
+     * @param mixed $id When not 0, the id required.
      * @param string $point2 If a second endpoint is required.
      * @param array $data An array of data containing key => value pairs.
      * @return mixed An object of the requested type.
      */
-    public function post_request(string $endpoint, int $id = 0, string $point2 = "", $data = array())
+    public function post_request(string $endpoint, $id = 0, string $point2 = "", $data = array())
     {
         $url = $this->discord_api . "/" . $endpoint;
         if ($id)
