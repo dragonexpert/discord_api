@@ -70,6 +70,7 @@ class discord
      * @param int $client_id The client id of the application.
      * @param string $client_secret The client secret of the application.
      * @param string $redirect_uri The default redirection url for logins.
+     * @param string $bot_token The token for the bot.
      */
     public function __construct(int $client_id, string $client_secret, string $redirect_uri, string $bot_token)
     {
@@ -476,7 +477,7 @@ class discord
      */
     public function get_guild_member(int $guild_id = 0, int $discordid = 0)
     {
-        return $this->get_request("guilds/" . $guild_id . "/members", $discordid);
+        return $this->get_request("guilds/" . $guild_id . "/members", $discordid, true, true);
     }
 
     /**
@@ -533,7 +534,33 @@ class discord
         {
             return "The key name is required for creating a guild role.";
         }
-        return $this->post_request("guilds", $guild_id, "roles");
+        return $this->post_request("guilds", $guild_id, "roles", $data, true);
+    }
+
+    /**
+     * This function adds a user to the specified role.
+     * @param int $guild_id The id of the guild.
+     * @param int $user_id The id of the user.
+     * @param int $role_id The id of the role.
+     * @return mixed Data about the request.  Error object on failure.
+     */
+    public function add_user_to_role(int $guild_id=0, int $user_id=0, int $role_id=0)
+    {
+        $url = $this->discord_api . "/guilds/" . $guild_id . "/members/" . $user_id . "/roles/" . $role_id;
+        return $this->put_request($url, true);
+    }
+
+    /**
+     * This function removes a role from a user.
+     * @param int $guild_id The id of the guild.
+     * @param int $user_id The id of the user.
+     * @param int $role_id The id of the role.
+     * @return mixed Data about the request.  Error object on failure.
+     */
+    public function delete_user_from_role(int $guild_id=0, int $user_id=0, int $role_id=0)
+    {
+        $url = $this->discord_api . "/guilds/" . $guild_id . "/members/" . $user_id . "/roles/" . $role_id;
+        return $this->delete_request($url, true);
     }
 
     /**
@@ -725,28 +752,113 @@ class discord
      * @param mixed $id When not 0, the id required.
      * @param string $point2 If a second endpoint is required.
      * @param array $data An array of data containing key => value pairs.
+     * @param bool $bot_token Whether a bot token is used.
      * @return mixed An object of the requested type.
      */
-    public function post_request(string $endpoint, $id = 0, string $point2 = "", $data = array())
+    public function post_request(string $endpoint, $id = 0, string $point2 = "", $data = array(), bool $bot_token=false)
     {
         $url = $this->discord_api . "/" . $endpoint;
+        if($bot_token)
+        {
+            $token = $this->bot_token;
+            $headertype = "Bot ";
+        }
+        else
+        {
+            $token = $this->access_token;
+            $headertype = "Bearer";
+        }
+        $url = $this->discord_api . "/guilds";
+        $token = $this->bot_token;
+        $headertype = "Bot ";
         if ($id)
         {
             $url .= "/" . $id;
         }
-        if ($point2)
+        if($point2)
         {
             $url .= "/" . $point2;
         }
         $ch = curl_init();
         curl_setopt_array($ch, array(
             CURLOPT_URL => $url,
+            CURLOPT_HTTPHEADER => array("Authorization: Bot {$token}",
+                "Content-type: application/json"),
             CURLOPT_POST => 1,
-            CURLOPT_POSTFIELDS => $data
+            CURLOPT_RETURNTRANSFER => true,
         ));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, "Authorization: Bearer " . $this->access_token);
+        // It is necessary to encode the data to JSON or requests ignore parameters.
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         $resp = json_decode(curl_exec($ch));
+        curl_close($ch);
+        return $resp;
+    }
+
+    /**
+     * This function performs a put request.
+     * For a PUT request it is required to have a content-length header set and the value 0 if you are not posting data.
+     * @param string $url The full url.
+     * @param bool $bot_token Whether to use a bot token.
+     * @return mixed Object with request information.
+     */
+    public function put_request(string $url, bool $bot_token=false)
+    {
+        if(!$bot_token)
+        {
+            $headertype = "Bearer";
+            $token = $this->access_token;
+        }
+        else
+        {
+            $headertype = "Bot";
+            $token = $this->bot_token;
+        }
+        $ch = curl_init();
+        curl_setopt_array($ch,
+            array(CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => "PUT",
+                CURLOPT_HTTPHEADER => array(
+                    "Authorization: {$headertype} {$token}",
+                    "Content-length: 0"
+                )
+            ));
+        $resp = json_decode(curl_exec($ch));
+        $resp->data = curl_getinfo($ch);
+        curl_close($ch);
+        return $resp;
+    }
+
+    /**
+     * This function performs a delete request.
+     * @param string $url The full url.
+     * @param bool $bot_token Whether to use a bot token.
+     * @return mixed Object with request information.
+     */
+    public function delete_request(string $url, bool $bot_token = false)
+    {
+        if(!$bot_token)
+        {
+            $headertype = "Bearer";
+            $token = $this->access_token;
+        }
+        else
+        {
+            $headertype = "Bot";
+            $token = $this->bot_token;
+        }
+        $ch = curl_init();
+        curl_setopt_array($ch,
+            array(CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => "DELETE",
+                CURLOPT_HTTPHEADER => array(
+                    "Authorization: {$headertype} {$token}",
+                    "Content-length: 0"
+                )
+            ));
+        $resp = json_decode(curl_exec($ch));
+        $resp->data = curl_getinfo($ch);
         curl_close($ch);
         return $resp;
     }
