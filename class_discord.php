@@ -479,7 +479,6 @@ class discord
     {
         return $this->get_request("guilds/" . $guild_id . "/members", $discordid, true, true);
     }
-
     /**
      * This function lists all guild members.
      * @param int $guild_id The id of the guild.
@@ -638,7 +637,7 @@ class discord
      */
     public function get_channel(int $channel_id = 0)
     {
-        return $this->get_request("channels", $channel_id);
+        return $this->get_request("channels", $channel_id, true, true);
     }
 
     /**
@@ -662,7 +661,7 @@ class discord
         {
             $parameter_part = "&" . $parameter_name . "=" . $parameter_value;
         }
-        return $this->get_request("channels", $channel_id . "/messages?limit=" . $limit . $parameter_part);
+        return $this->get_request("channels", $channel_id . "/messages?limit=" . $limit . $parameter_part, true, true);
     }
 
     /**
