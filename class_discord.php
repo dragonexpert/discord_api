@@ -64,6 +64,47 @@ class discord
         "applications.builds.read", "applications.store.update", "applications.entitlements", "relationships.read",
         "activities.read", "activities.write");
 
+    /**
+     * @var array A cache of permissions the role has.  Format $permissions->id['permission_name']
+     */
+    public $permissions = array();
+
+    /**
+     * @var int[] An array of values for each permission on Discord.
+     */
+    public $discord_permission_values = array(
+        "CREATE_INSTANT_INVITE" => 0x1,
+        "KICK_MEMBERS" => 0x2,
+        "BAN_MEMBERS" => 0x4,
+        "ADMINISTRATOR" => 0x8,
+        "MANAGE_CHANNELS" => 0x10,
+        "MANAGE_GUILD" => 0x20,
+        "ADD_REACTIONS" => 0x40,
+        "VIEW_AUDIT_LOG" => 0x80,
+        "PRIORITY_SPEAKER" => 0x100,
+        "STREAM" => 0x200,
+        "VIEW_CHANNEL" => 0x400,
+        "SEND_MESSAGES" => 0x800,
+        "SEND_TTS_MESSAGES" => 0x1000,
+        "MANAGE_MESSAGES" => 0x2000,
+        "EMBED_LINKS" => 0x4000,
+        "ATTACH_FILES" => 0x8000,
+        "READ_MESSAGE_HISTORY" => 0x10000,
+        "MENTION_EVERYONE" => 0x20000,
+        "USE_EXTERNAL_EMOJIS" => 0x40000,
+        "VIEW_GUILD_INSIGHTS" => 0x80000,
+        "CONNECT" => 0x100000,
+        "SPEAK" => 0x200000,
+        "MUTE_MEMBERS" => 0x400000,
+        "DEAFEN_MEMBERS" => 0x800000,
+        "MOVE_MEMBERS" => 0x1000000,
+        "USE_VAD" => 0x2000000,
+        "CHANGE_NICKNAME" => 0x4000000,
+        "MANAGE_NICKNAMES" => 0x8000000,
+        "MANAGE_ROLES" => 0x10000000,
+        "MANAGE_WEBHOOKS" => 0x20000000,
+        "MANAGE_EMOJIS" => 0x40000000
+    );
 
     /**
      * discord constructor.
@@ -337,6 +378,76 @@ class discord
     }
 
     /**
+     * This function takes a permission integer from discord and derives an array of permissions.
+     * @param int $integer The permission integer.
+     * @param int $id An id that will be used to cache the data.  If 0 or missing, the data will not be cached.
+     * @return int[] An array of permissions.
+     */
+    public function get_permissions_by_integer(int $integer=0, int $id=0)
+    {
+        $permissions = $integer;
+
+        $permission_array = array();
+        foreach(array_keys($this->discord_permission_values) as $key)
+        {
+            $permission_array[$key] = 0;
+        }
+
+        // Use loops to do stuff much easier.
+        $reverse = array_reverse($this->discord_permission_values);
+        foreach($reverse as $permission => $value)
+        {
+            if($permissions >= $value)
+            {
+                $permission_array[$permission] = 1;
+                $permissions -= $value;
+            }
+        }
+
+        // If the admin flag is true, set all values to true.
+        if($permission_array['ADMINISTRATOR'] == 1)
+        {
+            foreach($permission_array as $key => $value)
+            {
+                $permission_array[$key] = 1;
+            }
+        }
+        // Cache the permissions if an id is set.
+        if($id)
+        {
+            $this->permissions[$id] = $permission_array;
+        }
+        return $permission_array;
+    }
+
+    /**
+     * This function determines if a user has a specific permission.
+     * @param string $permission_name The name of the permission.
+     * @param mixed $permissions The array of permissions ( preferred ) or the integer value of permissions.
+     * @param int $id When set, uses the cache if it exists.
+     * @return int|mixed 1 for YES.  0 for NO.  If not called properly 0.
+     */
+    public function has_permission(string $permission_name, $permissions, int $id=0)
+    {
+        // Since we are using uppercase keys, make sure the name is uppercase.
+        $name = strtoupper($permission_name);
+        if($id && array_key_exists($id, $this->permissions))
+        {
+            return $this->permissions[$id][$name];
+        }
+        if(is_array($permissions))
+        {
+            return $permissions[$name];
+        }
+        if(is_integer($permissions))
+        {
+            $array = $this->get_permissions_by_integer($permissions, $id);
+            return $array[$name];
+        }
+        return 0;
+    }
+
+    /**
      * This function enables you to get information about a user.
      * @param string $access_token The access token that was issued.
      * @return mixed a user object or an error object.
@@ -451,7 +562,7 @@ class discord
      */
     public function get_guild_channels(int $guild_id = 0)
     {
-        return $this->get_request("guilds", $guild_id . "/channels");
+        return $this->get_request("guilds", $guild_id . "/channels", true, true);
     }
 
     /**
@@ -665,6 +776,29 @@ class discord
     }
 
     /**
+     * This function mass deletes messages.
+     * @param int $channel_id The id of the guild channel.
+     * @param array $messages An array of snowflake message ids.
+     * @return mixed code 204 on success, 400 on failure.
+     */
+    public function bulk_delete_messages(int $channel_id = 0, $messages=array())
+    {
+        $array = array("messages" => $messages);
+        return $this->post_request("channels/" . $channel_id . "/messages/bulk-delete", "0", "", $array, true);
+    }
+
+    /**
+     * This function deletes a single message.
+     * @param int $channel_id The id of the channel.
+     * @param int $message_id The id of the message.
+     * @return mixed Code 204 on success, 400 on failure.
+     */
+    public function delete_message(int $channel_id = 0, int $message_id = 0)
+    {
+        return $this->post_request("channels/" . $channel_id . "/messages/" . $message_id, "", "", "", true);
+    }
+
+    /**
      * This function gets channel invites.  Requires the MANAGE_CHANNELS permission.
      * @param int $channel_id The id of the channel.
      * @return mixed A list of invite objects on success.  An error object on failure.
@@ -693,6 +827,32 @@ class discord
     public function get_channel_pins(int $channel_id = 0)
     {
         return $this->get_request("channels", $channel_id . "/pins");
+    }
+
+    /**
+     * This function caches a username to a discord id.  Helpful if your users have a nickname and you are displaying messages.
+     * This can also be used to change ids of mentions to an actual username.
+     * @param string $usertable The name of your users table.
+     * @param string $username_column The column that contains username.
+     * @param string $discordid_column The column that contains the discordid.
+     * @param string $file_name The name of the cached file relative to cache/.
+     * @param object $db A database object.  Must have the methods query, fetch_array, and free_result.
+     */
+    public function cache_usernames(string $usertable="users", string $username_column="username", string $discordid_column="discrodid", string $file_name="users.php", object $db)
+    {
+        $content = "<?php\n\$user_cache = array(";
+        $query = $db->query("SELECT " . $username_column . ", " . $discordid_column . " FROM " . $usertable);
+        while($user = $db->fetch_array($query))
+        {
+            $content .= "\n\"" . $user[$discordid_column] . "\" => \"" . $user[$username_column] . "\",";
+        }
+        $db->free_result($query);
+        $stop = strlen($content) - 1;
+        $content = substr($content, 0, $stop);
+        $content .= "\n);";
+        $file = fopen("cache/" . $file_name, "w+");
+        fwrite($file, $content);
+        fclose($file);
     }
 
     /**
@@ -728,18 +888,6 @@ class discord
                     CURLOPT_RETURNTRANSFER => true));
             }
         }
-
-      /*  if ($requires_auth)
-        {
-            if(!$bot_token)
-            {
-                curl_setopt($ch, CURLOPT_HTTPHEADER, "Authorization: Bearer " . $this->access_token);
-            }
-            else
-            {
-                curl_setopt($ch, CURLOPT_HTTPHEADER, "Authorization: Bot " . $this->bot_token);
-            }
-        } */
         $resp = json_decode(curl_exec($ch));
         curl_close($ch);
         return $resp;
@@ -767,7 +915,7 @@ class discord
             $token = $this->access_token;
             $headertype = "Bearer";
         }
-        $url = $this->discord_api . "/guilds";
+        // $url = $this->discord_api . "/guilds";
         $token = $this->bot_token;
         $headertype = "Bot ";
         if ($id)
@@ -787,7 +935,10 @@ class discord
             CURLOPT_RETURNTRANSFER => true,
         ));
         // It is necessary to encode the data to JSON or requests ignore parameters.
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        if(!empty($data))
+        {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        }
         $resp = json_decode(curl_exec($ch));
         curl_close($ch);
         return $resp;
