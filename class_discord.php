@@ -39,12 +39,12 @@ class discord
     /**
      * @var string THe url to discord api.
      */
-    public $discord_api = "https://discordapp.com/api";
+    public $discord_api = "https://discord.com/api";
 
     /**
      * @var string The url to send a token request to given the code
      */
-    public $token_uri = "https://discordapp.com/api/oauth2/token";
+    public $token_uri = "https://discord.com/api/oauth2/token";
 
     /**
      * @var string The url to get an implicit grant.
@@ -139,7 +139,7 @@ class discord
      */
     public function generate_login_uri($scopes, string $login_text = "Login", string $state = "")
     {
-        $login_uri = "https://discordapp.com/api/oauth2/authorize?client_id=" . $this->client_id .
+        $login_uri = "https://discord.com/api/oauth2/authorize?client_id=" . $this->client_id .
             "&redirect_uri=" . urlencode($this->redirect_uri) . "&response_type=code&scope=";
         $separator = "";
         $no_valid_scope = true;
@@ -264,7 +264,7 @@ class discord
      */
     public function check_access_token()
     {
-        $info_request = "https://discordapp.com/api/oauth2/@me";
+        $info_request = "https://discord.com/api/oauth2/@me";
         $info = curl_init();
         curl_setopt_array($info, array(
             CURLOPT_URL => $info_request,
@@ -456,7 +456,7 @@ class discord
     {
         if ($access_token)
         {
-            $info_request = "https://discordapp.com/api/users/@me";
+            $info_request = "https://discord.com/api/users/@me";
             $info = curl_init();
             curl_setopt_array($info, array(
                 CURLOPT_URL => $info_request,
@@ -495,7 +495,7 @@ class discord
      */
     public function get_current_application_information()
     {
-        $application_uri = "https://discordapp.com/api/oauth2/applications/@me";
+        $application_uri = "https://discord.com/api/oauth2/applications/@me";
         $ch = curl_init($application_uri);
         $resp = json_decode(curl_exec($ch));
         curl_close($ch);
